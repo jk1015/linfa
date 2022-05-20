@@ -429,10 +429,10 @@ where
     }
 }
 
-impl<'b, F: Clone, E: Copy + 'b, D, T> DatasetBase<ArrayBase<D, Ix2>, T>
+impl<'b, 'c: 'b, F: Clone, E: Copy + 'b, D, T> DatasetBase<ArrayBase<D, Ix2>, T>
 where
     D: Data<Elem = F>,
-    T: AsTargets<Elem = E> + FromTargetArray<'b, E>,
+    T: AsTargets<Elem = E> + FromTargetArray<'c, E>,
     T::Owned: AsTargets,
 {
     /// Apply bootstrapping for samples and features
@@ -455,7 +455,7 @@ where
         &'b self,
         sample_feature_size: (usize, usize),
         rng: &'b mut R,
-    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b, E>>::Owned>> + 'b
+    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'c, E>>::Owned>> + 'b
     {
         std::iter::repeat(()).map(move |_| {
             // sample with replacement
@@ -496,7 +496,7 @@ where
         &'b self,
         num_samples: usize,
         rng: &'b mut R,
-    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b, E>>::Owned>> + 'b
+    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'c, E>>::Owned>> + 'b
     {
         std::iter::repeat(()).map(move |_| {
             // sample with replacement
@@ -531,7 +531,7 @@ where
         &'b self,
         num_features: usize,
         rng: &'b mut R,
-    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b, E>>::Owned>> + 'b
+    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'c, E>>::Owned>> + 'b
     {
         std::iter::repeat(()).map(move |_| {
             let targets = T::new_targets(self.as_multi_targets().to_owned());

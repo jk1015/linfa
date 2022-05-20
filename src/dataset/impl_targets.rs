@@ -17,6 +17,19 @@ impl<'a, L, S: Data<Elem = L>> AsTargets for ArrayBase<S, Ix1> {
     }
 }
 
+// impl<'a, L: Clone + 'a, S: Data<Elem = L>> FromTargetArray<'a, L> for ArrayBase<S, Ix1> {
+//     type Owned = ArrayBase<OwnedRepr<L>, Ix1>;
+//     type View = ArrayBase<ViewRepr<&'a L>, Ix1>;
+
+//     fn new_targets(targets: Array2<L>) -> Self::Owned {
+//         targets.index_axis(Axis(1), 0).to_owned()
+//     }
+
+//     fn new_targets_view(targets: ArrayView2<'a, L>) -> Self::View {
+//         targets.index_axis(Axis(1), 0)
+//     }
+// }
+
 impl<'a, L: Clone + 'a, S: Data<Elem = L>> FromTargetArray<'a, L> for ArrayBase<S, Ix2> {
     type Owned = ArrayBase<OwnedRepr<L>, Ix2>;
     type View = ArrayBase<ViewRepr<&'a L>, Ix2>;

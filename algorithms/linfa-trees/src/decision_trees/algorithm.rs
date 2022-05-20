@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
-use ndarray::{Array1, ArrayBase, Axis, Data, Ix1, Ix2};
+use ndarray::{Array1, Array2, ArrayBase, Axis, Data, Ix1, Ix2};
 
 use super::NodeIter;
 use super::Tikz;
@@ -486,6 +486,29 @@ impl<F: Float, L: Label + std::fmt::Debug> TreeNode<F, L> {
 pub struct DecisionTree<F: Float, L: Label> {
     root_node: TreeNode<F, L>,
     num_features: usize,
+}
+
+impl<F: Float, L: Label + Default, D: Data<Elem = F>> PredictInplace<ArrayBase<D, Ix2>, Array2<L>>
+    for DecisionTree<F, L>
+{
+    /// Make predictions for each row of a matrix of features `x`.
+    fn predict_inplace(&self, x: &ArrayBase<D, Ix2>, y: &mut Array2<L>) {
+
+        let mut y_flat = y.index_axis_mut(Axis(1), 0);
+        assert_eq!(
+            x.nrows(),
+            y_flat.len(),
+            "The number of data points must match the number of output targets."
+        );
+
+        for (row, target) in x.rows().into_iter().zip(y_flat.iter_mut()) {
+            *target = make_prediction(&row, &self.root_node);
+        }
+    }
+
+    fn default_target(&self, x: &ArrayBase<D, Ix2>) -> Array2<L> {
+        Array2::default([x.nrows(), 1])
+    }
 }
 
 impl<F: Float, L: Label + Default, D: Data<Elem = F>> PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
