@@ -2,7 +2,7 @@ use super::{
     super::traits::{Predict, PredictInplace},
     iter::{ChunksIter, DatasetIter, Iter},
     AsTargets, AsTargetsMut, CountedTargets, Dataset, DatasetBase, DatasetView, Float,
-    FromTargetArray, Label, Labels, Records, Result,
+    FromTargetArray, FromTargetArrayOwned, Label, Labels, Records, Result,
 };
 use crate::traits::Fit;
 use ndarray::{
@@ -432,7 +432,7 @@ where
 impl<'b, F: Clone, E: Copy + 'b, D, T> DatasetBase<ArrayBase<D, Ix2>, T>
 where
     D: Data<Elem = F>,
-    T: AsTargets<Elem = E> + FromTargetArray<'b, E>,
+    T: AsTargets<Elem = E> + FromTargetArrayOwned<E>,
     T::Owned: AsTargets,
 {
     /// Apply bootstrapping for samples and features
@@ -455,7 +455,7 @@ where
         &'b self,
         sample_feature_size: (usize, usize),
         rng: &'b mut R,
-    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b, E>>::Owned>> + 'b
+    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArrayOwned<E>>::Owned>> + 'b
     {
         std::iter::repeat(()).map(move |_| {
             // sample with replacement
@@ -496,7 +496,7 @@ where
         &'b self,
         num_samples: usize,
         rng: &'b mut R,
-    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b, E>>::Owned>> + 'b
+    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArrayOwned<E>>::Owned>> + 'b
     {
         std::iter::repeat(()).map(move |_| {
             // sample with replacement
@@ -531,7 +531,7 @@ where
         &'b self,
         num_features: usize,
         rng: &'b mut R,
-    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b, E>>::Owned>> + 'b
+    ) -> impl Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArrayOwned<E>>::Owned>> + 'b
     {
         std::iter::repeat(()).map(move |_| {
             let targets = T::new_targets(self.as_multi_targets().to_owned());
@@ -594,13 +594,13 @@ where
     /// let dataset : DatasetView<f64, usize> = (records.view(), targets.view()).into();
     /// let accuracies = dataset.fold(3).into_iter().map(|(train, valid)| {
     ///     // Here you can train your model and perform validation
-    ///     
+    ///
     ///     // let model = params.fit(&dataset);
     ///     // let predi = model.predict(&valid);
-    ///     // predi.confusion_matrix(&valid).accuracy()  
+    ///     // predi.confusion_matrix(&valid).accuracy()
     /// });
     /// ```
-    ///  
+    ///
     pub fn fold(
         &self,
         k: usize,
@@ -1002,7 +1002,7 @@ impl<F, E> Dataset<F, E> {
     /// * `ratio`: the ratio of samples in the input Dataset to include in the first output one
     ///
     /// ### Returns
-    ///  
+    ///
     /// The input Dataset split into two according to the input ratio.
     pub fn split_with_ratio(mut self, ratio: f32) -> (Self, Self) {
         let (nfeatures, ntargets) = (self.nfeatures(), self.ntargets());
