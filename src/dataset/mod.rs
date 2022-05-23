@@ -222,17 +222,18 @@ pub trait AsTargets {
     }
 }
 
+pub trait FromTargetArrayOwned<F> {
+    type Owned;
+    fn new_targets(targets: Array2<F>) -> Self::Owned;
+}
+
 /// Helper trait to construct counted labels
 ///
 /// This is implemented for objects which can act as targets and created from a target matrix. For
 /// targets represented as `ndarray` matrix this is identity, for counted labels, i.e.
 /// `TargetsWithLabels`, it creates the corresponding wrapper struct.
-pub trait FromTargetArray<'a, F> {
-    type Owned;
+pub trait FromTargetArray<'a, F>: FromTargetArrayOwned<F> {
     type View;
-
-    /// Create self object from new target array
-    fn new_targets(targets: Array2<F>) -> Self::Owned;
     fn new_targets_view(targets: ArrayView2<'a, F>) -> Self::View;
 }
 

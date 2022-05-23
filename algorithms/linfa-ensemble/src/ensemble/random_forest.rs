@@ -39,7 +39,7 @@ pub fn rf_test() {
     let data = Array::random_using((num_samples, num_features), Uniform::new(-1., 1.), &mut rng);
     println!("Predicting");
     let predictions_tree: Array1<usize> = tree_model.predict(&data);
-    
+
     let predictions_ensemble = model.generate_predictions(&data);
     let ranked_predictions_ensemble = model.aggregate_predictions(predictions_ensemble);
 
