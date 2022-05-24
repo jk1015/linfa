@@ -94,37 +94,37 @@ where
     }
 }
 
-pub struct EnsembleLearnerParams<F, E, P> {
+pub struct EnsembleLearnerParams<F, P> {
     pub ensemble_size: usize,
     pub bootstrap_proportion: f64,
     pub model_params: Option<P>,
-    _t: PhantomData<(F, E)>
+    _t: PhantomData<F>,
 
 }
 
-impl<F, E, P> EnsembleLearnerParams<F, E, P> {
-    pub fn new() -> EnsembleLearnerParams<F, E, P> {
+impl<F, P> EnsembleLearnerParams<F, P> {
+    pub fn new() -> EnsembleLearnerParams<F, P> {
         EnsembleLearnerParams {ensemble_size: 1, bootstrap_proportion: 1.0, model_params: None, _t: PhantomData}
     }
 
-    pub fn ensemble_size(&mut self, size: usize) -> &mut EnsembleLearnerParams<F, E, P> {
+    pub fn ensemble_size(&mut self, size: usize) -> &mut EnsembleLearnerParams<F, P> {
         self.ensemble_size = size;
         self
     }
 
-    pub fn bootstrap_proportion(&mut self, proportion: f64) -> &mut EnsembleLearnerParams<F, E, P> {
+    pub fn bootstrap_proportion(&mut self, proportion: f64) -> &mut EnsembleLearnerParams<F, P> {
         self.bootstrap_proportion = proportion;
         self
     }
 
-    pub fn model_params(&mut self, params: P) -> &mut EnsembleLearnerParams<F, E, P>  {
+    pub fn model_params(&mut self, params: P) -> &mut EnsembleLearnerParams<F, P>  {
         self.model_params = Some(params);
         self
     }
 }
 
 impl<F: Clone, D, T, P: Fit<Array2<F>, T::Owned, Error>>
-     Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<F, <T as AsTargets>::Elem, P>
+     Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<F, P>
 where
     D: Data<Elem = F> ,
     T: AsTargets + FromTargetArrayOwned<<T as AsTargets>::Elem>,
