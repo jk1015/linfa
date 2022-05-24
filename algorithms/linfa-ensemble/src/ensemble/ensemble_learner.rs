@@ -13,12 +13,12 @@ use std::collections::HashMap;
 
 // Add a wrapper function for getting stats out of predictors
 // Want to remove T here, but it causes unconstrained parameter error in impl block below
-pub struct EnsembleLearner<F, E, M, T> {
+pub struct EnsembleLearner<F, M, T> {
     pub models: Vec<M>,
-    _t: PhantomData<(F, E, T)>
+    _t: PhantomData<(F, T)>,
 }
 
-impl <F: Clone, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, T::Elem, M, T>
+impl <F: Clone, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, M, T>
 where
     T: AsTargets,
     T::Elem: Copy + std::cmp::Eq + std::hash::Hash,
@@ -66,7 +66,7 @@ where
 }
 
 impl <F: Clone, T, M: PredictInplace<Array2<F>, T>>
-PredictInplace<Array2<F>, T> for EnsembleLearner<F, <T as AsTargets>::Elem, M, T>
+PredictInplace<Array2<F>, T> for EnsembleLearner<F, M, T>
 where
     <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     T: AsTargets + AsTargetsMut<Elem = <T as AsTargets>::Elem>,
@@ -131,7 +131,7 @@ where
     <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     T::Owned: AsTargets,
 {
-    type Object = EnsembleLearner<F, <T as AsTargets>::Elem, P::Object, T::Owned>;
+    type Object = EnsembleLearner<F, P::Object, T::Owned>;
 
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object, Error> {
         assert!(
