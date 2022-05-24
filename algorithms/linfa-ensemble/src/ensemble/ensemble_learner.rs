@@ -18,12 +18,11 @@ pub struct EnsembleLearner<F, E, M, T> {
     _t: PhantomData<(F, E, T)>
 }
 
-impl <F: Clone, E, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, E, M, T>
+impl <F: Clone, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, T::Elem, M, T>
 where
-    E: Copy + std::cmp::Eq + std::hash::Hash,
-    T: AsTargets<Elem = E>,
+    T: AsTargets,
+    T::Elem: Copy + std::cmp::Eq + std::hash::Hash,
 {
-
     pub fn generate_predictions<'b>(&'b self, x: &'b Array2<F>) -> impl Iterator<Item = T> + 'b {
         self.models.iter().map(move |m| {
             let result = m.predict(x);
@@ -31,11 +30,10 @@ where
         })
     }
 
-
     // Consumes prediction iterator to return all predictions made by any model
     // Orders predictions by total number of models giving that prediciton
     pub fn aggregate_predictions(&self, ys: impl Iterator<Item=T>)
-    -> Array1<Vec<(Array1<E>, usize)>>
+    -> Array1<Vec<(Array1<T::Elem>, usize)>>
     {
         let mut prediction_maps = Vec::new();
 
@@ -63,18 +61,15 @@ where
 
         }
 
-
         prediction_array
-
     }
-
 }
 
-impl <F: Clone, E, T, M: PredictInplace<Array2<F>, T>>
-PredictInplace<Array2<F>, T> for EnsembleLearner<F, E, M, T>
+impl <F: Clone, T, M: PredictInplace<Array2<F>, T>>
+PredictInplace<Array2<F>, T> for EnsembleLearner<F, <T as AsTargets>::Elem, M, T>
 where
-    E: Copy + std::cmp::Eq + std::hash::Hash,
-    T: AsTargets<Elem = E> + AsTargetsMut<Elem = E>,
+    <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
+    T: AsTargets + AsTargetsMut<Elem = <T as AsTargets>::Elem>,
 {
     fn predict_inplace(&self, x: &Array2<F>, y: &mut T) {
         let mut y_array = y.as_multi_targets_mut();
@@ -128,20 +123,15 @@ impl<F, E, P> EnsembleLearnerParams<F, E, P> {
     }
 }
 
-//T::Owned=T is a hack to make the bootstrapped samples fittable which only works for Array2
-//Instead, for a general solution, we would like to write:
-// - P: Fit<Array2<F>, T::Owned, Error>
-// - type Object = EnsembleLearner<F, E, P::Object, T::Owned>;
-//But this won't compile as it makes 'b unconstrained for some reason
-impl<F: Clone, E, D, T, P: Fit<Array2<F>, T::Owned, Error>>
-     Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<F, E, P>
+impl<F: Clone, D, T, P: Fit<Array2<F>, T::Owned, Error>>
+     Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<F, <T as AsTargets>::Elem, P>
 where
-    E: Copy + std::cmp::Eq + std::hash::Hash,
     D: Data<Elem = F> ,
-    T: AsTargets<Elem = E> + FromTargetArrayOwned<E>,
+    T: AsTargets + FromTargetArrayOwned<<T as AsTargets>::Elem>,
+    <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     T::Owned: AsTargets,
 {
-    type Object = EnsembleLearner<F, E, P::Object, T::Owned>;
+    type Object = EnsembleLearner<F, <T as AsTargets>::Elem, P::Object, T::Owned>;
 
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object, Error> {
         assert!(
@@ -168,8 +158,9 @@ where
             }
         }
 
-        Ok(EnsembleLearner{models:models,
-                           _t: PhantomData {}})
-
+        Ok(EnsembleLearner {
+            models:models,
+            _t: PhantomData {},
+        })
     }
 }
