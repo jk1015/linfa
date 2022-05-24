@@ -8,7 +8,7 @@ use rand::rngs::SmallRng;
 
 
 pub type RandomForestParams<F, L> = EnsembleLearnerParams<DecisionTreeParams<F, L>>;
-pub type RandomForest<F, L> = EnsembleLearner<F, DecisionTree<F, L>, Array2<L>>;
+pub type RandomForest<F, L> = EnsembleLearner<DecisionTree<F, L>>;
 
 pub fn rf_test() {
     let num_samples = 3;
@@ -39,15 +39,15 @@ pub fn rf_test() {
     println!("Predicting");
     let predictions_tree: Array1<usize> = tree_model.predict(&data);
 
-    let predictions_ensemble = model.generate_predictions(&data);
+    let predictions_ensemble = model.generate_predictions::<_, Array2<usize>>(&data);
     let ranked_predictions_ensemble = model.aggregate_predictions(predictions_ensemble);
 
     //println!("Predictions: \n{:?}", predictions_ensemble);
     println!("Ranked Predictions: \n{:?}", ranked_predictions_ensemble);
 
-    let mut y_array = model.default_target(&dataset.records);
+    let mut y_array: Array2<usize> = model.default_target(&dataset.records);
 
 
-    let final_predictions_ensemble = model.predict(&dataset);
+    let final_predictions_ensemble: Array2<usize> = model.predict(&dataset);
     println!("Final Predictions: \n{:?}", final_predictions_ensemble);
 }

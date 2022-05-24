@@ -1,5 +1,5 @@
 use linfa::{
-    dataset::{AsTargets, AsTargetsMut, FromTargetArrayOwned},
+    dataset::{AsTargets, AsTargetsMut, FromTargetArrayOwned, Records},
     error::{Error},
     traits::*,
     DatasetBase,
@@ -8,22 +8,17 @@ use ndarray::{
     Array1, Array2, ArrayBase, Axis,
     Data, Ix2,
 };
-use std::marker::PhantomData;
 use std::collections::HashMap;
 
 // Add a wrapper function for getting stats out of predictors
 // Want to remove T here, but it causes unconstrained parameter error in impl block below
-pub struct EnsembleLearner<F, M, T> {
+pub struct EnsembleLearner<M> {
     pub models: Vec<M>,
-    _phantom: PhantomData<fn(F) -> T>,
 }
 
-impl <F: Clone, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, M, T>
-where
-    T: AsTargets,
-    T::Elem: Copy + std::cmp::Eq + std::hash::Hash,
-{
-    pub fn generate_predictions<'b>(&'b self, x: &'b Array2<F>) -> impl Iterator<Item = T> + 'b {
+impl<M> EnsembleLearner<M> {
+    pub fn generate_predictions<'b, R: Records, T>(&'b self, x: &'b R) -> impl Iterator<Item = T> + 'b
+    where M: Predict<&'b R, T> + PredictInplace<R, T> {
         self.models.iter().map(move |m| {
             let result = m.predict(x);
             result
@@ -32,8 +27,11 @@ where
 
     // Consumes prediction iterator to return all predictions made by any model
     // Orders predictions by total number of models giving that prediciton
-    pub fn aggregate_predictions(&self, ys: impl Iterator<Item=T>)
-    -> Array1<Vec<(Array1<T::Elem>, usize)>>
+    pub fn aggregate_predictions<Ys: Iterator>(&self, ys: Ys)
+    -> Array1<Vec<(Array1<<Ys::Item as AsTargets>::Elem>, usize)>>
+    where
+        Ys::Item: AsTargets,
+        <Ys::Item as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     {
         let mut prediction_maps = Vec::new();
 
@@ -49,7 +47,6 @@ where
                 //Might be better to store all predictions elsewhere and return a view on them here?
                 *prediction_maps[i].entry(y.as_multi_targets().index_axis(Axis(0), i).to_owned()).or_insert(0) += 1;
             }
-
         }
 
         let mut prediction_array = Array1::from_elem(prediction_maps.len(), Vec::new());
@@ -65,9 +62,10 @@ where
     }
 }
 
-impl<F: Clone, T, M: PredictInplace<Array2<F>, T>>
-PredictInplace<Array2<F>, T> for EnsembleLearner<F, M, T>
+impl<F: Clone, T, M>
+PredictInplace<Array2<F>, T> for EnsembleLearner<M>
 where
+    M: PredictInplace<Array2<F>, T>,
     <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     T: AsTargets + AsTargetsMut<Elem = <T as AsTargets>::Elem>,
 {
@@ -134,7 +132,7 @@ where
     <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     T::Owned: AsTargets,
 {
-    type Object = EnsembleLearner<D::Elem, P::Object, T::Owned>;
+    type Object = EnsembleLearner<P::Object>;
 
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object, Error> {
         assert!(
@@ -160,9 +158,6 @@ where
             }
         }
 
-        Ok(EnsembleLearner {
-            models: models,
-            _phantom: PhantomData {},
-        })
+        Ok(EnsembleLearner { models })
     }
 }
