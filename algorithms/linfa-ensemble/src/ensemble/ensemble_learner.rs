@@ -15,7 +15,7 @@ use std::collections::HashMap;
 // Want to remove T here, but it causes unconstrained parameter error in impl block below
 pub struct EnsembleLearner<F, M, T> {
     pub models: Vec<M>,
-    _t: PhantomData<(F, T)>,
+    _phantom: PhantomData<fn(F) -> T>,
 }
 
 impl <F: Clone, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, M, T>
@@ -65,7 +65,7 @@ where
     }
 }
 
-impl <F: Clone, T, M: PredictInplace<Array2<F>, T>>
+impl<F: Clone, T, M: PredictInplace<Array2<F>, T>>
 PredictInplace<Array2<F>, T> for EnsembleLearner<F, M, T>
 where
     <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
@@ -89,49 +89,52 @@ where
         }
     }
 
-    fn default_target(&self, x: &Array2<F>) -> T{
+    fn default_target(&self, x: &Array2<F>) -> T {
         self.models[0].default_target(x)
     }
 }
 
-pub struct EnsembleLearnerParams<F, P> {
+pub struct EnsembleLearnerParams<P> {
     pub ensemble_size: usize,
     pub bootstrap_proportion: f64,
     pub model_params: Option<P>,
-    _t: PhantomData<F>,
-
 }
 
-impl<F, P> EnsembleLearnerParams<F, P> {
-    pub fn new() -> EnsembleLearnerParams<F, P> {
-        EnsembleLearnerParams {ensemble_size: 1, bootstrap_proportion: 1.0, model_params: None, _t: PhantomData}
+impl<P> EnsembleLearnerParams<P> {
+    pub fn new() -> EnsembleLearnerParams<P> {
+        EnsembleLearnerParams {
+            ensemble_size: 1,
+            bootstrap_proportion: 1.0,
+            model_params: None,
+        }
     }
 
-    pub fn ensemble_size(&mut self, size: usize) -> &mut EnsembleLearnerParams<F, P> {
+    pub fn ensemble_size(&mut self, size: usize) -> &mut EnsembleLearnerParams<P> {
         self.ensemble_size = size;
         self
     }
 
-    pub fn bootstrap_proportion(&mut self, proportion: f64) -> &mut EnsembleLearnerParams<F, P> {
+    pub fn bootstrap_proportion(&mut self, proportion: f64) -> &mut EnsembleLearnerParams<P> {
         self.bootstrap_proportion = proportion;
         self
     }
 
-    pub fn model_params(&mut self, params: P) -> &mut EnsembleLearnerParams<F, P>  {
+    pub fn model_params(&mut self, params: P) -> &mut EnsembleLearnerParams<P>  {
         self.model_params = Some(params);
         self
     }
 }
 
-impl<F: Clone, D, T, P: Fit<Array2<F>, T::Owned, Error>>
-     Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<F, P>
+impl<D, T, P: Fit<Array2<D::Elem>, T::Owned, Error>>
+     Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<P>
 where
-    D: Data<Elem = F> ,
+    D: Data,
+    D::Elem: Clone,
     T: AsTargets + FromTargetArrayOwned<<T as AsTargets>::Elem>,
     <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
     T::Owned: AsTargets,
 {
-    type Object = EnsembleLearner<F, P::Object, T::Owned>;
+    type Object = EnsembleLearner<D::Elem, P::Object, T::Owned>;
 
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object, Error> {
         assert!(
@@ -144,7 +147,6 @@ where
 
         let dataset_size = ((dataset.records.shape()[0] as f64) * self.bootstrap_proportion) as usize;
 
-        //Had to modify lifetimes in impl_dataset to get this to work!
         let iter = dataset.bootstrap_samples(dataset_size, rng);
 
         let mut i = 0;
@@ -159,8 +161,8 @@ where
         }
 
         Ok(EnsembleLearner {
-            models:models,
-            _t: PhantomData {},
+            models: models,
+            _phantom: PhantomData {},
         })
     }
 }

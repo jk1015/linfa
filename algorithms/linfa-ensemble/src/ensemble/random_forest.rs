@@ -7,11 +7,10 @@ use ndarray_rand::{rand::SeedableRng, rand_distr::Uniform, RandomExt};
 use rand::rngs::SmallRng;
 
 
-pub type RandomForestParams<F, L> = EnsembleLearnerParams<F, DecisionTreeParams<F, L>>;
+pub type RandomForestParams<F, L> = EnsembleLearnerParams<DecisionTreeParams<F, L>>;
 pub type RandomForest<F, L> = EnsembleLearner<F, DecisionTree<F, L>, Array2<L>>;
 
 pub fn rf_test() {
-
     let num_samples = 3;
     let num_features = 5;
     let mut rng = SmallRng::seed_from_u64(42);
