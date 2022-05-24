@@ -1,5 +1,5 @@
 use super::{EnsembleLearner, EnsembleLearnerParams};
-use ndarray::{Array1, Array, Array2, OwnedRepr, Axis};
+use ndarray::{Array1, Array, Array2};
 use linfa::{Dataset};
 use linfa::prelude::{Predict, PredictInplace, Fit};
 use linfa_trees::{DecisionTree, DecisionTreeParams};

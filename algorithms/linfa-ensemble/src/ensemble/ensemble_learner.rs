@@ -1,5 +1,5 @@
 use linfa::{
-    dataset::{AsTargets, AsTargetsMut, FromTargetArray, FromTargetArrayOwned},
+    dataset::{AsTargets, AsTargetsMut, FromTargetArrayOwned},
     error::{Error},
     traits::*,
     DatasetBase,
@@ -70,11 +70,11 @@ where
 
 }
 
-impl <'b, F: Clone, E, T, M: PredictInplace<Array2<F>, T>>
+impl <F: Clone, E, T, M: PredictInplace<Array2<F>, T>>
 PredictInplace<Array2<F>, T> for EnsembleLearner<F, E, M, T>
 where
-    E: Copy + std::cmp::Eq + std::hash::Hash + 'b,
-    T: AsTargets<Elem = E> + AsTargetsMut<Elem = E> + FromTargetArray<'b, E>,
+    E: Copy + std::cmp::Eq + std::hash::Hash,
+    T: AsTargets<Elem = E> + AsTargetsMut<Elem = E>,
 {
     fn predict_inplace(&self, x: &Array2<F>, y: &mut T) {
         let mut y_array = y.as_multi_targets_mut();
@@ -128,6 +128,11 @@ impl<F, E, P> EnsembleLearnerParams<F, E, P> {
     }
 }
 
+//T::Owned=T is a hack to make the bootstrapped samples fittable which only works for Array2
+//Instead, for a general solution, we would like to write:
+// - P: Fit<Array2<F>, T::Owned, Error>
+// - type Object = EnsembleLearner<F, E, P::Object, T::Owned>;
+//But this won't compile as it makes 'b unconstrained for some reason
 impl<F: Clone, E, D, T, P: Fit<Array2<F>, T::Owned, Error>>
      Fit<ArrayBase<D, Ix2>, T, Error> for EnsembleLearnerParams<F, E, P>
 where
