@@ -18,13 +18,13 @@ pub struct EnsembleLearner<F, E, M, T> {
     _t: PhantomData<(F, E, T)>
 }
 
-impl <'b, F: Clone, E, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, E, M, T>
+impl <F: Clone, E, T, M: PredictInplace<Array2<F>, T>> EnsembleLearner<F, E, M, T>
 where
-    E: Copy + std::cmp::Eq + std::hash::Hash + 'b,
+    E: Copy + std::cmp::Eq + std::hash::Hash,
     T: AsTargets<Elem = E>,
 {
 
-    pub fn generate_predictions(&'b self, x: &'b Array2<F>) -> impl Iterator<Item = T> + 'b {
+    pub fn generate_predictions<'b>(&'b self, x: &'b Array2<F>) -> impl Iterator<Item = T> + 'b {
         self.models.iter().map(move |m| {
             let result = m.predict(x);
             result
@@ -34,7 +34,7 @@ where
 
     // Consumes prediction iterator to return all predictions made by any model
     // Orders predictions by total number of models giving that prediciton
-    pub fn aggregate_predictions(&self, ys: impl Iterator<Item=T> + 'b)
+    pub fn aggregate_predictions(&self, ys: impl Iterator<Item=T>)
     -> Array1<Vec<(Array1<E>, usize)>>
     {
         let mut prediction_maps = Vec::new();
