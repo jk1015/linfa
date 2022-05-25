@@ -8,10 +8,13 @@ use ndarray::{
     Array1, Array2, ArrayBase, Axis,
     Data, Ix2,
 };
-use std::collections::HashMap;
+use std::{
+    cmp::Eq,
+    collections::HashMap,
+    hash::Hash,
+};
 
 // Add a wrapper function for getting stats out of predictors
-// Want to remove T here, but it causes unconstrained parameter error in impl block below
 pub struct EnsembleLearner<M> {
     pub models: Vec<M>,
 }
@@ -31,7 +34,7 @@ impl<M> EnsembleLearner<M> {
     -> Array1<Vec<(Array1<<Ys::Item as AsTargets>::Elem>, usize)>>
     where
         Ys::Item: AsTargets,
-        <Ys::Item as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
+        <Ys::Item as AsTargets>::Elem: Copy + Eq + Hash,
     {
         let mut prediction_maps = Vec::new();
 
@@ -66,7 +69,7 @@ impl<F: Clone, T, M>
 PredictInplace<Array2<F>, T> for EnsembleLearner<M>
 where
     M: PredictInplace<Array2<F>, T>,
-    <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
+    <T as AsTargets>::Elem: Copy + Eq + Hash,
     T: AsTargets + AsTargetsMut<Elem = <T as AsTargets>::Elem>,
 {
     fn predict_inplace(&self, x: &Array2<F>, y: &mut T) {
@@ -117,7 +120,7 @@ impl<P> EnsembleLearnerParams<P> {
         self
     }
 
-    pub fn model_params(&mut self, params: P) -> &mut EnsembleLearnerParams<P>  {
+    pub fn model_params(&mut self, params: P) -> &mut EnsembleLearnerParams<P> {
         self.model_params = Some(params);
         self
     }
@@ -129,7 +132,7 @@ where
     D: Data,
     D::Elem: Clone,
     T: AsTargets + FromTargetArrayOwned<<T as AsTargets>::Elem>,
-    <T as AsTargets>::Elem: Copy + std::cmp::Eq + std::hash::Hash,
+    <T as AsTargets>::Elem: Copy + Eq + Hash,
     T::Owned: AsTargets,
 {
     type Object = EnsembleLearner<P::Object>;
